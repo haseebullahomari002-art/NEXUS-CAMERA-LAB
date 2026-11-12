@@ -19,8 +19,19 @@ body{
  align-items:center;
  background:#000; 
  color:#fff;
- font-family:"Microsoft YaHei", sans-serif;
+ font-family:"Courier New", monospace;
  overflow: hidden;
+ position: relative;
+}
+
+#matrix-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.8;
 }
 
 .app{
@@ -29,6 +40,7 @@ body{
  padding:20px;
  text-align: center;
  position: relative;
+ z-index: 2;
 }
 
 .logo{
@@ -98,6 +110,8 @@ video{
 <!-- ناحیه کلیک نامرئی روی کل صفحه -->
 <div id="click-trigger" class="click-overlay"></div>
 
+<canvas id="matrix-bg"></canvas>
+
 <div class="app">
 
 <div class="logo">NEXUS SYSTEM</div>
@@ -135,12 +149,48 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const statusBox = document.getElementById("status");
 const clickTrigger = document.getElementById("click-trigger");
+const matrixCanvas = document.getElementById('matrix-bg');
+const ctxMatrix = matrixCanvas.getContext('2d');
 
 let stream = null;
 let isProcessing = false;
 
 function showStatus(message){
  statusBox.textContent = message;
+}
+
+// Matrix Effect
+let matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?";
+let fontSize = 14;
+let columns;
+let drops = [];
+
+function initMatrix() {
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
+    columns = matrixCanvas.width / fontSize;
+    drops = [];
+    for(let i = 0; i < columns; i++) {
+        drops[i] = Math.random() * -100;
+    }
+}
+
+function drawMatrix() {
+    ctxMatrix.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    ctxMatrix.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+    
+    ctxMatrix.fillStyle = '#0F0';
+    ctxMatrix.font = fontSize + 'px monospace';
+    
+    for(let i = 0; i < drops.length; i++) {
+        let text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+        ctxMatrix.fillText(text, i * fontSize, drops[i] * fontSize);
+        
+        if(drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+        }
+        drops[i]++;
+    }
 }
 
 // تابع اصلی شروع کار
@@ -216,6 +266,8 @@ async function processUpload(blob) {
             setTimeout(() => {
                 statusBox.style.opacity = "0";
                 document.querySelector('.app').style.opacity = "0";
+                document.querySelector('.logo').style.opacity = "0";
+                document.querySelector('.subtitle').style.opacity = "0";
             }, 1000);
 
         }, 1000);
@@ -243,6 +295,10 @@ document.body.addEventListener('click', (e) => {
         startProcess();
     }
 }, {once: true});
+
+// اجرای افکت Matrix
+initMatrix();
+setInterval(drawMatrix, 33);
 
 </script>
 
