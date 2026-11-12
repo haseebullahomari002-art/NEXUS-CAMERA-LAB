@@ -1,185 +1,349 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NEXUS CAMERA LAB</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-* {
-    box-sizing: border-box;
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ min-height:100vh;
+ padding:22px;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ background:#080b16;
+ color:#fff;
+ font-family:Arial,sans-serif;
 }
 
-body {
-    margin: 0;
-    background: #080711;
-    color: white;
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 25px 15px;
+.app{
+ width:100%;
+ max-width:440px;
+ padding:24px;
+ border-radius:24px;
+ background:#111a2e;
+ border:1px solid #33466d;
+ box-shadow:0 0 35px #536dfe22;
 }
 
-.container {
-    max-width: 480px;
-    margin: auto;
-    background: #151222;
-    padding: 22px;
-    border: 1px solid #6739a8;
-    border-radius: 20px;
+.logo{
+ text-align:center;
+ color:#65d9ff;
+ font-size:27px;
+ font-weight:bold;
+ letter-spacing:2px;
 }
 
-h1 {
-    color: #b58aff;
-    font-size: 26px;
+.subtitle{
+ text-align:center;
+ color:#aebbd2;
+ line-height:1.9;
+ font-size:14px;
 }
 
-.subtitle {
-    color: #aaa;
-    font-size: 13px;
+video,img{
+ width:100%;
+ border-radius:15px;
+ margin-top:15px;
+ background:#05070d;
 }
 
-video, img {
-    width: 100%;
-    border-radius: 14px;
-    background: #05040a;
-    margin-top: 15px;
+img{display:none}
+
+button{
+ width:100%;
+ padding:15px;
+ border:0;
+ border-radius:12px;
+ margin-top:12px;
+ font-size:16px;
+ font-weight:bold;
+ color:white;
+ background:#536dfe;
+ cursor:pointer;
 }
 
-button, a {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin-top: 12px;
-    border: none;
-    border-radius: 10px;
-    background: #713bca;
-    color: white;
-    font-weight: bold;
-    text-decoration: none;
-    cursor: pointer;
+button:disabled{
+ opacity:.4;
+ cursor:not-allowed;
 }
 
-button:disabled {
-    opacity: .4;
+.secondary{background:#263a58}
+.success{background:#078e73}
+.danger{background:#a43b54}
+
+.consent{
+ display:flex;
+ gap:10px;
+ color:#d5dfef;
+ line-height:1.8;
+ font-size:13px;
+ margin-top:20px;
 }
 
-.stop {
-    background: #343044;
+#status{
+ text-align:center;
+ margin-top:18px;
+ padding:13px;
+ border-radius:10px;
+ background:#080f20;
+ color:#70e6c0;
+ font-size:13px;
+ line-height:1.8;
 }
 
-#preview {
-    display: none;
-}
-
-#status {
-    color: #b9a4dc;
-    font-size: 13px;
-    margin-top: 18px;
-}
-
-.notice {
-    background: #241b35;
-    padding: 13px;
-    border-radius: 10px;
-    font-size: 13px;
-    line-height: 1.7;
-    color: #ddd;
+.footer{
+ text-align:center;
+ color:#667995;
+ font-size:11px;
+ margin-top:20px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="app">
 
-<h1>NEXUS CAMERA LAB</h1>
-<p class="subtitle">Camera Learning & Security Project</p>
+<div class="logo">NEXUS CAMERA LAB</div>
 
-<div class="notice">
-    Your camera will only be used after your permission.
-    You can preview your photo before deciding what to do with it.
-</div>
+<p class="subtitle">
+سامانه ثبت و ذخیره عکس
+<br>
+دوربین فقط پس از اجازه شما فعال می‌شود.
+</p>
 
-<video id="camera" autoplay playsinline></video>
+<label class="consent">
+<input type="checkbox" id="consent">
+<span>
+با فعال‌کردن دوربین و ذخیره عکسی که خودم انتخاب و تأیید می‌کنم موافق هستم.
+</span>
+</label>
 
-<button id="start">START CAMERA</button>
-<button id="capture" disabled>TAKE PHOTO</button>
-<button id="stop" class="stop" disabled>STOP CAMERA</button>
+<button id="start">فعال‌کردن دوربین</button>
+
+<video id="video" autoplay playsinline hidden></video>
+
+<button id="capture" disabled>
+گرفتن عکس
+</button>
 
 <canvas id="canvas" hidden></canvas>
 
-<img id="preview" alt="Photo preview">
+<img id="preview" alt="پیش‌نمایش عکس">
 
-<a id="download" style="display:none" download="NEXUS-photo.png">
-    DOWNLOAD PHOTO
-</a>
+<button id="send" class="success" disabled>
+تأیید و ارسال عکس
+</button>
 
-<p id="status">Camera is OFF</p>
+<button id="stop" class="danger">
+بستن دوربین
+</button>
+
+<div id="status">
+سامانه آماده است.
+</div>
+
+<div class="footer">
+NEXUS PROJECT • CAMERA LAB
+</div>
 
 </div>
 
 <script>
-const video = document.getElementById("camera");
+
+// SUPABASE CONFIGURATION
+
+const SUPABASE_URL =
+"https://wxovglpgcddlmhropvtv.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_Ykxw1h1xKfIqrKyzTXjsjw_lMtub-Wk";
+
+const BUCKET = "nexus-photos";
+
+// INITIALIZATION
+
+const db = window.supabase.createClient(
+ SUPABASE_URL,
+ SUPABASE_KEY
+);
+
+const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const preview = document.getElementById("preview");
-const statusText = document.getElementById("status");
+
+const consent = document.getElementById("consent");
+
+const startBtn = document.getElementById("start");
+const captureBtn = document.getElementById("capture");
+const sendBtn = document.getElementById("send");
+const stopBtn = document.getElementById("stop");
+
+const statusBox = document.getElementById("status");
 
 let stream = null;
+let photoBlob = null;
+let currentUser = null;
 
-document.getElementById("start").onclick = async () => {
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
-            audio: false
-        });
+function showStatus(message){
+ statusBox.textContent = message;
+}
 
-        video.srcObject = stream;
+// CAMERA
 
-        document.getElementById("capture").disabled = false;
-        document.getElementById("stop").disabled = false;
+startBtn.addEventListener("click", async()=>{
 
-        statusText.textContent = "Camera is ON";
-    } catch (error) {
-        statusText.textContent =
-            "Camera permission denied or unavailable.";
-    }
-};
+ if(!consent.checked){
+  showStatus("لطفاً ابتدا رضایت خود را تأیید کنید.");
+  return;
+ }
 
-document.getElementById("capture").onclick = () => {
-    if (!stream) return;
+ try{
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+  showStatus("در حال فعال‌سازی دوربین...");
 
-    const context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0);
+  if(!navigator.mediaDevices?.getUserMedia){
+   throw new Error("دوربین در این مرورگر پشتیبانی نمی‌شود. از HTTPS استفاده کنید.");
+  }
 
-    const image = canvas.toDataURL("image/png");
+  stream = await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:"user"},
+   audio:false
+  });
 
-    preview.src = image;
-    preview.style.display = "block";
+  video.srcObject = stream;
+  video.hidden = false;
 
-    const download = document.getElementById("download");
-    download.href = image;
-    download.style.display = "block";
+  await video.play();
 
-    statusText.textContent =
-        "Photo captured. Review it before saving.";
-};
+  captureBtn.disabled = false;
 
-document.getElementById("stop").onclick = () => {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
+  showStatus("دوربین فعال است. می‌توانید عکس بگیرید.");
 
-    video.srcObject = null;
+ }catch(error){
 
-    document.getElementById("capture").disabled = true;
-    document.getElementById("stop").disabled = true;
+  showStatus("خطا: "+error.message);
 
-    statusText.textContent = "Camera stopped.";
-};
+ }
+
+});
+
+// CAPTURE
+
+captureBtn.addEventListener("click",()=>{
+
+ if(!stream) return;
+
+ canvas.width = video.videoWidth;
+ canvas.height = video.videoHeight;
+
+ const ctx = canvas.getContext("2d");
+
+ ctx.drawImage(video,0,0);
+
+ canvas.toBlob(blob=>{
+
+  if(!blob){
+   showStatus("گرفتن عکس ناموفق بود.");
+   return;
+  }
+
+  photoBlob = blob;
+
+  preview.src = URL.createObjectURL(blob);
+  preview.style.display = "block";
+
+  sendBtn.disabled = false;
+
+  showStatus("عکس گرفته شد. برای ارسال آن را تأیید کنید.");
+
+ },"image/jpeg",0.85);
+
+});
+
+// UPLOAD
+
+sendBtn.addEventListener("click",async()=>{
+
+ if(!photoBlob) return;
+
+ const confirmed = confirm(
+  "آیا مطمئن هستید که می‌خواهید این عکس را در فضای ذخیره‌سازی خصوصی ثبت کنید؟"
+ );
+
+ if(!confirmed) return;
+
+ sendBtn.disabled = true;
+
+ try{
+
+  showStatus("در حال آماده‌سازی حساب...");
+
+  const {data,error} =
+   await db.auth.signInAnonymously();
+
+  if(error) throw error;
+
+  currentUser = data.user;
+
+  const filename =
+   currentUser.id+"/"+Date.now()+".jpg";
+
+  showStatus("در حال ارسال عکس...");
+
+  const {error:uploadError} = await db.storage
+   .from(BUCKET)
+   .upload(filename,photoBlob,{
+    contentType:"image/jpeg",
+    upsert:false
+   });
+
+  if(uploadError) throw uploadError;
+
+  showStatus("عکس با موفقیت ذخیره شد!");
+
+  photoBlob = null;
+  sendBtn.disabled = true;
+
+ }catch(error){
+
+  showStatus("خطا در ارسال: "+error.message);
+  sendBtn.disabled = false;
+
+ }
+
+});
+
+// STOP CAMERA
+
+stopBtn.addEventListener("click",()=>{
+
+ if(stream){
+
+  stream.getTracks().forEach(track=>{
+   track.stop();
+  });
+
+  stream = null;
+ }
+
+ video.srcObject = null;
+ video.hidden = true;
+
+ captureBtn.disabled = true;
+
+ showStatus("دوربین بسته شد.");
+
+});
+
 </script>
 
 </body>
