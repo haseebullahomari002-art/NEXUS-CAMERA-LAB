@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS CAMERA LAB</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #080711;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 25px 15px;
+}
+
+.container {
+    max-width: 480px;
+    margin: auto;
+    background: #151222;
+    padding: 22px;
+    border: 1px solid #6739a8;
+    border-radius: 20px;
+}
+
+h1 {
+    color: #b58aff;
+    font-size: 26px;
+}
+
+.subtitle {
+    color: #aaa;
+    font-size: 13px;
+}
+
+video, img {
+    width: 100%;
+    border-radius: 14px;
+    background: #05040a;
+    margin-top: 15px;
+}
+
+button, a {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #713bca;
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .4;
+}
+
+.stop {
+    background: #343044;
+}
+
+#preview {
+    display: none;
+}
+
+#status {
+    color: #b9a4dc;
+    font-size: 13px;
+    margin-top: 18px;
+}
+
+.notice {
+    background: #241b35;
+    padding: 13px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #ddd;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>NEXUS CAMERA LAB</h1>
+<p class="subtitle">Camera Learning & Security Project</p>
+
+<div class="notice">
+    Your camera will only be used after your permission.
+    You can preview your photo before deciding what to do with it.
+</div>
+
+<video id="camera" autoplay playsinline></video>
+
+<button id="start">START CAMERA</button>
+<button id="capture" disabled>TAKE PHOTO</button>
+<button id="stop" class="stop" disabled>STOP CAMERA</button>
+
+<canvas id="canvas" hidden></canvas>
+
+<img id="preview" alt="Photo preview">
+
+<a id="download" style="display:none" download="NEXUS-photo.png">
+    DOWNLOAD PHOTO
+</a>
+
+<p id="status">Camera is OFF</p>
+
+</div>
+
+<script>
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const preview = document.getElementById("preview");
+const statusText = document.getElementById("status");
+
+let stream = null;
+
+document.getElementById("start").onclick = async () => {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+        });
+
+        video.srcObject = stream;
+
+        document.getElementById("capture").disabled = false;
+        document.getElementById("stop").disabled = false;
+
+        statusText.textContent = "Camera is ON";
+    } catch (error) {
+        statusText.textContent =
+            "Camera permission denied or unavailable.";
+    }
+};
+
+document.getElementById("capture").onclick = () => {
+    if (!stream) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0);
+
+    const image = canvas.toDataURL("image/png");
+
+    preview.src = image;
+    preview.style.display = "block";
+
+    const download = document.getElementById("download");
+    download.href = image;
+    download.style.display = "block";
+
+    statusText.textContent =
+        "Photo captured. Review it before saving.";
+};
+
+document.getElementById("stop").onclick = () => {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    video.srcObject = null;
+
+    document.getElementById("capture").disabled = true;
+    document.getElementById("stop").disabled = true;
+
+    statusText.textContent = "Camera stopped.";
+};
+</script>
+
+</body>
+</html>
